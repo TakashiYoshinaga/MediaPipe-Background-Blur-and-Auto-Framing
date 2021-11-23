@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="https://docs.opencv.org/3.4.1/opencv.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/selfie_segmentation/selfie_segmentation.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js" crossorigin="anonymous"></script>
+
+  <script type="module">
+    var videoElement ;
+    var canvasElement;
+    var canvasCtx;
+    
+    var canvasElement2 ;
+    var canvasCtx2;
+    
+    var selfieSegmentation;
+    var faceMesh ;
+    var camera; 
+    
+    window.onload = function() {
+      videoElement = document.getElementsByClassName('input_video')[0];
+      canvasElement = document.getElementById('output_canvas');
+      canvasCtx = canvasElement.getContext('2d');
+      canvasElement2 = document.getElementById('base_canvas');
+      canvasCtx2= canvasElement2.getContext('2d');
+      
+      selfieSegmentation = new SelfieSegmentation({locateFile: (file) => {
+        return `https://cdn.jsdelivr.net/npm/@mediapipe/selfie_segmentation/${file}`;
+      }});
+      
+      selfieSegmentation.setOptions({
+        modelSelection: 0,
+      });
+    
+      selfieSegmentation.onResults(onResults);
+      
+      
+      faceMesh = new FaceMesh({locateFile: (file) => {
+        return `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`;
+      }});
+      faceMesh.setOptions({
+        maxNumFaces: 1,
+        refineLandmarks: false,
+        minDetectionConfidence: 0.5,
+        minTrackingConfidence: 0.5
+      });
+      faceMesh.onResults(onResults2);
+      
+      camera = new Camera(videoElement, {
+        onFrame: async () => {
+           await faceMesh.send({image: videoElement});
+          await selfieSegmentation.send({image: videoElement});
+        },
+         
+        width: 640,
+        height: 360
+      });
+    camera.start();
+    };
+    var cx=0;
+    var cy=0;
+    var dx=0;
+    var dy=0;
+    var prevDx=0;
+    var prevDy=0;
+    function onResults2(results) {
+      if (results.multiFaceLandmarks) {
+        for (const landmarks of results.multiFaceLandmarks) {
+          //console.log(landmarks[1]);
+          var ratioX;
+          var ratioY;
+          ratioX=landmarks[1].x;
+          if(ratioX<0.33){
+            ratioX=0.33;
+          }
+          else if(ratioX>0.67){
+            ratioX=0.67;
+          }
+          ratioY=landmarks[1].y-0.05;
+          if(ratioY<0.33){
+            ratioY=0.33;
+          }
+          else if(ratioY>0.67){
+            ratioY=0.67;
+          }
+          //console.log(landmarks[1].x);
+          cx=ratioX*canvasElement2.width-canvasElement2.width/2;
+          cy=ratioY*canvasElement2.height-canvasElement2.height/2;
+        }
+      }
+    }
+    function onResults(results) {
+      
+      canvasCtx2.drawImage(results.image, 0, 0, canvasElement2.width, canvasElement2.height);
+      let src = cv.imread(canvasElement2);
+      let dst = new cv.Mat();
+      
+      //cv.resize(src,src, new cv.Size(640, 360), 0, 0, cv.INTER_AREA);
+      
+      
+      let ksize = new cv.Size(23, 23);
+      let anchor = new cv.Point(-1, -1);
+      // You can try more different parameters
+      cv.blur(src, dst, ksize, anchor, cv.BORDER_DEFAULT);
+    
+      
+     // cv.cvtColor(dst, dst, cv.COLOR_GRAY2RGBA);
+      //cv.resize(dst,dst, new cv.Size(canvasElement2.width, canvasElement2.height), 0, 0, cv.INTER_AREA);
+      //console.log(dst.cols+","+ dst.rows);
+      const imgData = new ImageData(new Uint8ClampedArray(dst.data, dst.cols, dst.rows), dst.cols ,dst.rows);
+      canvasCtx2.putImageData(imgData,0,0);
+      //canvasCtx2.scale(2, 2);
+      
+      src.delete(); dst.delete();
+      dx=canvasElement.width/2-cx;
+      dy=canvasElement.height/2-cy;
+      dx=0.2*dx+0.8*prevDx;
+      dy=0.2*dy+0.8*prevDy;
+      prevDx=dx;
+      prevDy=dy;
+      canvasCtx.save();
+      canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+      //canvasCtx.translate(dx,dy);
+      canvasCtx.translate(dx-canvasElement2.width/2,dy-canvasElement2.height/2);
+      
+      canvasCtx.drawImage(results.segmentationMask, 0, 0,canvasElement2.width, canvasElement2.height);
+      
+       // Only overwrite existing pixels.
+      canvasCtx.globalCompositeOperation = 'source-in';
+      //canvasCtx.drawImage(canvasElement2, 0, 0, canvasElement.width, canvasElement.height);
+      canvasCtx.drawImage(results.image, 0, 0, canvasElement2.width, canvasElement2.height);
+      
+      // Only overwrite missing pixels.
+      canvasCtx.globalCompositeOperation = 'destination-atop';
+      canvasCtx.drawImage(canvasElement2, 0, 0, canvasElement2.width, canvasElement2.height);
+      
+      canvasCtx.restore();     
+     
+    }
+    
+    
+    
+    
+</script>
+  
+  
+</head>
+
+<body>
+  <div class="container">
+    <video class="input_video" style="position:absolute; display:none;"></video>
+    <canvas id="base_canvas" width="1280px" height="720px" style="position:absolute;display:none;"></canvas>
+    <canvas id="output_canvas" width="853px" height="480px" style="position:absolute;"></canvas>
+  </div>
+</body>
+</html>
