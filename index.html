@@ -88,8 +88,8 @@
             ratioY=0.67;
           }
           //console.log(landmarks[1].x);
-          cx=ratioX*canvasElement2.width-canvasElement2.width/2;
-          cy=ratioY*canvasElement2.height-canvasElement2.height/2;
+          cx=ratioX*canvasElement2.width;
+          cy=ratioY*canvasElement2.height;
         }
       }
     }
@@ -98,20 +98,18 @@
         if(!initialized){
           initialized=true;
           //canvasのサイズは入力画像の2倍 (お好きなサイズでどうぞ)
-          canvasElement.width=results.image.width*1.5;
-          canvasElement.height=results.image.height*1.5;
+          canvasElement.width=results.image.width*1.3;
+          canvasElement.height=results.image.height*1.3;
           //入力画像と同じサイズのcanvasを用意
           canvasElement2.width=results.image.width*2;
           canvasElement2.height=results.image.height*2;
         }
-      
+      //拡大表示
       canvasCtx2.drawImage(results.image, 0, 0, canvasElement2.width, canvasElement2.height);
       let src = cv.imread(canvasElement2);
       let dst = new cv.Mat();
-      
-      
-      
-      let ksize = new cv.Size(23, 23);
+        
+      let ksize = new cv.Size(19, 19);
       let anchor = new cv.Point(-1, -1);
       // You can try more different parameters
       cv.blur(src, dst, ksize, anchor, cv.BORDER_DEFAULT);
@@ -121,25 +119,28 @@
       canvasCtx2.putImageData(imgData,0,0);
       
       src.delete(); dst.delete();
+      
       dx=canvasElement.width/2-cx;
       dy=canvasElement.height/2-cy;
       dx=0.2*dx+0.8*prevDx;
       dy=0.2*dy+0.8*prevDy;
       prevDx=dx;
       prevDy=dy;
+      
       canvasCtx.save();
       canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
-      //canvasCtx.translate(dx,dy);
-      canvasCtx.translate(dx-canvasElement2.width/2,dy-canvasElement2.height/2);
+     
+      
+      canvasCtx.translate(dx,dy);
       
       canvasCtx.drawImage(results.segmentationMask, 0, 0,canvasElement2.width, canvasElement2.height);
       
        // Only overwrite existing pixels.
       canvasCtx.globalCompositeOperation = 'source-in';
-      //canvasCtx.drawImage(canvasElement2, 0, 0, canvasElement.width, canvasElement.height);
+      //ちょっと大きめに表示する
       canvasCtx.drawImage(results.image, 0, 0, canvasElement2.width, canvasElement2.height);
       
-      // Only overwrite missing pixels.
+      //ちょっと大きめに表示する
       canvasCtx.globalCompositeOperation = 'destination-atop';
       canvasCtx.drawImage(canvasElement2, 0, 0, canvasElement2.width, canvasElement2.height);
       
@@ -147,7 +148,6 @@
      
     }
 </script>
-  
   
 </head>
 
