@@ -18,7 +18,15 @@
     var selfieSegmentation;
     var faceMesh ;
     var camera; 
-    
+    let initialized=false;
+    var cx=0;
+    var cy=0;
+    var dx=0;
+    var dy=0;
+    var prevDx=0;
+    var prevDy=0;
+
+
     window.onload = function() {
       videoElement = document.getElementsByClassName('input_video')[0];
       canvasElement = document.getElementById('output_canvas');
@@ -59,12 +67,6 @@
       });
     camera.start();
     };
-    var cx=0;
-    var cy=0;
-    var dx=0;
-    var dy=0;
-    var prevDx=0;
-    var prevDy=0;
     function onResults2(results) {
       if (results.multiFaceLandmarks) {
         for (const landmarks of results.multiFaceLandmarks) {
@@ -92,12 +94,21 @@
       }
     }
     function onResults(results) {
+        //canvasのサイズを設定
+        if(!initialized){
+          initialized=true;
+          //canvasのサイズは入力画像の2倍 (お好きなサイズでどうぞ)
+          canvasElement.width=results.image.width*1.5;
+          canvasElement.height=results.image.height*1.5;
+          //入力画像と同じサイズのcanvasを用意
+          canvasElement2.width=results.image.width*2;
+          canvasElement2.height=results.image.height*2;
+        }
       
       canvasCtx2.drawImage(results.image, 0, 0, canvasElement2.width, canvasElement2.height);
       let src = cv.imread(canvasElement2);
       let dst = new cv.Mat();
       
-      //cv.resize(src,src, new cv.Size(640, 360), 0, 0, cv.INTER_AREA);
       
       
       let ksize = new cv.Size(23, 23);
@@ -106,12 +117,8 @@
       cv.blur(src, dst, ksize, anchor, cv.BORDER_DEFAULT);
     
       
-     // cv.cvtColor(dst, dst, cv.COLOR_GRAY2RGBA);
-      //cv.resize(dst,dst, new cv.Size(canvasElement2.width, canvasElement2.height), 0, 0, cv.INTER_AREA);
-      //console.log(dst.cols+","+ dst.rows);
       const imgData = new ImageData(new Uint8ClampedArray(dst.data, dst.cols, dst.rows), dst.cols ,dst.rows);
       canvasCtx2.putImageData(imgData,0,0);
-      //canvasCtx2.scale(2, 2);
       
       src.delete(); dst.delete();
       dx=canvasElement.width/2-cx;
@@ -139,10 +146,6 @@
       canvasCtx.restore();     
      
     }
-    
-    
-    
-    
 </script>
   
   
@@ -151,8 +154,8 @@
 <body>
   <div class="container">
     <video class="input_video" style="position:absolute; display:none;"></video>
-    <canvas id="base_canvas" width="1280px" height="720px" style="position:absolute;display:none;"></canvas>
-    <canvas id="output_canvas" width="853px" height="480px" style="position:absolute;"></canvas>
+    <canvas id="base_canvas"  style="position:absolute;display:none;"></canvas>
+    <canvas id="output_canvas" style="position:absolute;"></canvas>
   </div>
 </body>
 </html>
