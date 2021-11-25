@@ -15,6 +15,9 @@
     var canvasElement2 ;
     var canvasCtx2;
     
+    var canvasElementCV ;
+    var canvasCtxCV;
+    
     var selfieSegmentation;
     var faceMesh ;
     var camera; 
@@ -25,7 +28,7 @@
     var dy=0;
     var prevDx=0;
     var prevDy=0;
-
+    var scale=1.36;
 
     window.onload = function() {
       videoElement = document.getElementsByClassName('input_video')[0];
@@ -33,6 +36,8 @@
       canvasCtx = canvasElement.getContext('2d');
       canvasElement2 = document.getElementById('base_canvas');
       canvasCtx2= canvasElement2.getContext('2d');
+      canvasElementCV = document.getElementById('cv_canvas');
+      canvasCtxCV= canvasElementCV.getContext('2d');
       
       selfieSegmentation = new SelfieSegmentation({locateFile: (file) => {
         return `https://cdn.jsdelivr.net/npm/@mediapipe/selfie_segmentation/${file}`;
@@ -58,10 +63,9 @@
       
       camera = new Camera(videoElement, {
         onFrame: async () => {
-           await faceMesh.send({image: videoElement});
+          await faceMesh.send({image: videoElement});
           await selfieSegmentation.send({image: videoElement});
-        },
-         
+        },     
         width: 640,
         height: 360
       });
@@ -71,49 +75,54 @@
       if (results.multiFaceLandmarks) {
         for (const landmarks of results.multiFaceLandmarks) {
           //console.log(landmarks[1]);
-          var ratioX;
-          var ratioY;
-          ratioX=landmarks[1].x;
-          if(ratioX<0.33){
-            ratioX=0.33;
+          var margin=(canvasElement2.width-canvasElement.width)/2;
+          var halfWidth=canvasElement2.width/2;
+          var halfHeight=canvasElement2.height/2;
+          cx=landmarks[1].x*canvasElement2.width;
+          
+          if(cx-halfWidth>margin){
+            cx=margin+halfWidth;
           }
-          else if(ratioX>0.67){
-            ratioX=0.67;
+          else if(halfWidth-cx>margin){
+            cx=halfWidth-margin;
           }
-          ratioY=landmarks[1].y-0.05;
-          if(ratioY<0.33){
-            ratioY=0.33;
+          
+          cy=landmarks[1].y*canvasElement2.height;
+          margin=(canvasElement2.height-canvasElement.height)/2;
+          if(cy-halfHeight>margin){
+            cy=margin+halfHeight;
           }
-          else if(ratioY>0.67){
-            ratioY=0.67;
+          else if(halfHeight-cy>margin){
+            cy=halfHeight-margin;
           }
-          //console.log(landmarks[1].x);
-          cx=ratioX*canvasElement2.width;
-          cy=ratioY*canvasElement2.height;
         }
       }
     }
     function onResults(results) {
-        //canvasのサイズを設定
-        if(!initialized){
-          initialized=true;
-          //canvasのサイズは入力画像の2倍 (お好きなサイズでどうぞ)
-          canvasElement.width=results.image.width*1.3;
-          canvasElement.height=results.image.height*1.3;
-          //入力画像と同じサイズのcanvasを用意
-          canvasElement2.width=results.image.width*2;
-          canvasElement2.height=results.image.height*2;
-        }
+      //canvasのサイズを設定
+      if(!initialized){
+        initialized=true;
+        //canvasのサイズは入力画像の2倍 (お好きなサイズでどうぞ)
+        canvasElement.width=results.image.width*1.5;
+        canvasElement.height=results.image.height*1.5;
+        //入力画像と同じサイズのcanvasを用意
+        canvasElement2.width=canvasElement.width*scale;
+        canvasElement2.height=canvasElement.height*scale;
+          
+        canvasElementCV.width=results.image.width;
+        canvasElementCV.height=results.image.height;
+      }
       //拡大表示
-      canvasCtx2.drawImage(results.image, 0, 0, canvasElement2.width, canvasElement2.height);
-      let src = cv.imread(canvasElement2);
+      canvasCtxCV.drawImage(results.image, 0, 0, canvasElementCV.width, canvasElementCV.height);
+      let src = cv.imread(canvasElementCV);
       let dst = new cv.Mat();
         
-      let ksize = new cv.Size(19, 19);
+      let ksize = new cv.Size(9, 9);
       let anchor = new cv.Point(-1, -1);
       // You can try more different parameters
       cv.blur(src, dst, ksize, anchor, cv.BORDER_DEFAULT);
-    
+      
+      cv.resize(dst,dst, new cv.Size(canvasElement2.width, canvasElement2.height), 0, 0, cv.INTER_AREA);
       
       const imgData = new ImageData(new Uint8ClampedArray(dst.data, dst.cols, dst.rows), dst.cols ,dst.rows);
       canvasCtx2.putImageData(imgData,0,0);
@@ -122,8 +131,8 @@
       
       dx=canvasElement.width/2-cx;
       dy=canvasElement.height/2-cy;
-      dx=0.2*dx+0.8*prevDx;
-      dy=0.2*dy+0.8*prevDy;
+      dx=0.1*dx+0.9*prevDx;
+      dy=0.1*dy+0.9*prevDy;
       prevDx=dx;
       prevDy=dy;
       
@@ -154,6 +163,7 @@
 <body>
   <div class="container">
     <video class="input_video" style="position:absolute; display:none;"></video>
+    <canvas id="cv_canvas"  style="position:absolute;display:none;"></canvas>
     <canvas id="base_canvas"  style="position:absolute;display:none;"></canvas>
     <canvas id="output_canvas" style="position:absolute;"></canvas>
   </div>
