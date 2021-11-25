@@ -12,8 +12,8 @@
     var canvasElement;
     var canvasCtx;
     
-    var canvasElement2 ;
-    var canvasCtx2;
+    var dstWidth=0;
+    var dstHeight=0;
     
     var canvasElementCV ;
     var canvasCtxCV;
@@ -34,8 +34,6 @@
       videoElement = document.getElementsByClassName('input_video')[0];
       canvasElement = document.getElementById('output_canvas');
       canvasCtx = canvasElement.getContext('2d');
-      canvasElement2 = document.getElementById('base_canvas');
-      canvasCtx2= canvasElement2.getContext('2d');
       canvasElementCV = document.getElementById('cv_canvas');
       canvasCtxCV= canvasElementCV.getContext('2d');
       
@@ -75,11 +73,11 @@
       if (results.multiFaceLandmarks) {
         for (const landmarks of results.multiFaceLandmarks) {
           //console.log(landmarks[1]);
-          var margin=(canvasElement2.width-canvasElement.width)/2;
-          var halfWidth=canvasElement2.width/2;
-          var halfHeight=canvasElement2.height/2;
+          var margin=(dstWidth-canvasElement.width)/2;
+          var halfWidth=dstWidth/2;
+          var halfHeight=dstHeight/2;
          
-          cx=landmarks[1].x*canvasElement2.width;
+          cx=landmarks[1].x*dstWidth;
           
           var dx=cx-halfWidth;
           
@@ -91,10 +89,10 @@
             cx=halfWidth-margin;
           }
           
-          cy=landmarks[1].y*canvasElement2.height;
+          cy=landmarks[1].y*dstHeight;
           var dy=cy-halfHeight;
           
-          margin=(canvasElement2.height-canvasElement.height)/2;
+          margin=(dstHeight-canvasElement.height)/2;
           if(dy>margin){
             cy=margin+halfHeight;
           }
@@ -112,8 +110,8 @@
         canvasElement.width=results.image.width*1.5;
         canvasElement.height=results.image.height*1.5;
         //入力画像と同じサイズのcanvasを用意
-        canvasElement2.width=canvasElement.width*scale;
-        canvasElement2.height=canvasElement.height*scale;
+        dstWidth=canvasElement.width*scale;
+        dstHeight=canvasElement.height*scale;
           
         canvasElementCV.width=results.image.width;
         canvasElementCV.height=results.image.height;
@@ -127,11 +125,10 @@
       let anchor = new cv.Point(-1, -1);
       // You can try more different parameters
       cv.blur(src, dst, ksize, anchor, cv.BORDER_DEFAULT);
-      
-      cv.resize(dst,dst, new cv.Size(canvasElement2.width, canvasElement2.height), 0, 0, cv.INTER_AREA);
-      
+        
       const imgData = new ImageData(new Uint8ClampedArray(dst.data, dst.cols, dst.rows), dst.cols ,dst.rows);
-      canvasCtx2.putImageData(imgData,0,0);
+    
+      canvasCtxCV.putImageData(imgData,0,0);
       
       src.delete(); dst.delete();
       
@@ -144,33 +141,30 @@
       
       canvasCtx.save();
       canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
-     
-      
+          
       canvasCtx.translate(dx,dy);
       
-      canvasCtx.drawImage(results.segmentationMask, 0, 0,canvasElement2.width, canvasElement2.height);
+      canvasCtx.drawImage(results.segmentationMask, 0, 0,dstWidth, dstHeight);
       
        // Only overwrite existing pixels.
       canvasCtx.globalCompositeOperation = 'source-in';
       //ちょっと大きめに表示する
-      canvasCtx.drawImage(results.image, 0, 0, canvasElement2.width, canvasElement2.height);
+      canvasCtx.drawImage(results.image, 0, 0, dstWidth, dstHeight);
       
       //ちょっと大きめに表示する
       canvasCtx.globalCompositeOperation = 'destination-atop';
-      canvasCtx.drawImage(canvasElement2, 0, 0, canvasElement2.width, canvasElement2.height);
+      canvasCtx.drawImage(canvasElementCV, 0, 0, dstWidth, dstHeight);
       
       canvasCtx.restore();     
      
     }
-</script>
-  
+</script> 
 </head>
 
 <body>
   <div class="container">
     <video class="input_video" style="position:absolute; display:none;"></video>
     <canvas id="cv_canvas"  style="position:absolute;display:none;"></canvas>
-    <canvas id="base_canvas"  style="position:absolute;display:none;"></canvas>
     <canvas id="output_canvas" style="position:absolute;"></canvas>
   </div>
 </body>
