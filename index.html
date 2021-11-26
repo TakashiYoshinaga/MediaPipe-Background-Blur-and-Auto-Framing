@@ -20,12 +20,10 @@
     
     var selfieSegmentation;
     var faceMesh ;
-    var camera; 
+     
     let initialized=false;
     var cx=0;
     var cy=0;
-    var dx=0;
-    var dy=0;
     var prevDx=0;
     var prevDy=0;
     var scale=1.38;
@@ -45,7 +43,7 @@
         modelSelection: 0,
       });
     
-      selfieSegmentation.onResults(onResults);
+      selfieSegmentation.onResults(onSelfieResults);
       
       
       faceMesh = new FaceMesh({locateFile: (file) => {
@@ -57,9 +55,9 @@
         minDetectionConfidence: 0.5,
         minTrackingConfidence: 0.5
       });
-      faceMesh.onResults(onResults2);
+      faceMesh.onResults(onFaceResults);
       
-      camera = new Camera(videoElement, {
+      var camera = new Camera(videoElement, {
         onFrame: async () => {
           await faceMesh.send({image: videoElement});
           await selfieSegmentation.send({image: videoElement});
@@ -69,7 +67,7 @@
       });
     camera.start();
     };
-    function onResults2(results) {
+    function onFaceResults(results) {
       if (results.multiFaceLandmarks) {
         for (const landmarks of results.multiFaceLandmarks) {
           //console.log(landmarks[1]);
@@ -79,44 +77,44 @@
          
           cx=landmarks[1].x*dstWidth;
           
-          var dx=cx-halfWidth;
+          var delta=cx-halfWidth;
           
           
-          if(dx>margin){
+          if(delta>margin){
             cx=margin+halfWidth;
           }
-          else if(-dx>margin){
+          else if(-delta>margin){
             cx=halfWidth-margin;
           }
           
           cy=landmarks[1].y*dstHeight;
-          var dy=cy-halfHeight;
+          delta=cy-halfHeight;
           
           margin=(dstHeight-canvasElement.height)/2;
-          if(dy>margin){
+          if(delta>margin){
             cy=margin+halfHeight;
           }
-          else if(-dy>margin){
+          else if(-delta>margin){
             cy=halfHeight-margin;
           }
         }
       }
     }
-    function onResults(results) {
+    function onSelfieResults(results) {
       //canvasのサイズを設定
       if(!initialized){
         initialized=true;
-        //canvasのサイズは入力画像の2倍 (お好きなサイズでどうぞ)
+        //canvasのサイズは入力画像の1.5倍 (お好きなサイズでどうぞ)
         canvasElement.width=results.image.width*1.5;
         canvasElement.height=results.image.height*1.5;
-        //入力画像と同じサイズのcanvasを用意
+        //入力画像の係数倍のcanvasを用意
         dstWidth=canvasElement.width*scale;
         dstHeight=canvasElement.height*scale;
-          
+        //OpenCV用のキャンバスは入力画像と同じでOK(サイズが大き差に比例して処理が重くなる)
         canvasElementCV.width=results.image.width;
         canvasElementCV.height=results.image.height;
       }
-      //拡大表示
+
       canvasCtxCV.drawImage(results.image, 0, 0, canvasElementCV.width, canvasElementCV.height);
       let src = cv.imread(canvasElementCV);
       let dst = new cv.Mat();
@@ -132,8 +130,10 @@
       
       src.delete(); dst.delete();
       
-      dx=canvasElement.width/2-cx;
-      dy=canvasElement.height/2-cy;
+      //平滑化した移動量を計算()
+      var dx=canvasElement.width/2-cx;
+      var dy=canvasElement.height/2-cy;
+ 
       dx=0.1*dx+0.9*prevDx;
       dy=0.1*dy+0.9*prevDy;
       prevDx=dx;
@@ -141,24 +141,22 @@
       
       canvasCtx.save();
       canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
-          
+           
       canvasCtx.translate(dx,dy);
       
       canvasCtx.drawImage(results.segmentationMask, 0, 0,dstWidth, dstHeight);
       
        // Only overwrite existing pixels.
       canvasCtx.globalCompositeOperation = 'source-in';
-      //ちょっと大きめに表示する
       canvasCtx.drawImage(results.image, 0, 0, dstWidth, dstHeight);
       
-      //ちょっと大きめに表示する
       canvasCtx.globalCompositeOperation = 'destination-atop';
       canvasCtx.drawImage(canvasElementCV, 0, 0, dstWidth, dstHeight);
       
       canvasCtx.restore();     
      
     }
-</script> 
+</script>
 </head>
 
 <body>
