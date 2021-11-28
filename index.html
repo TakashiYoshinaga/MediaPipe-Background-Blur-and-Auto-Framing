@@ -27,6 +27,7 @@
     var prevDx=0;
     var prevDy=0;
     var scale=1.38;
+    var prevWidth=0;
 
     window.onload = function() {
       videoElement = document.getElementsByClassName('input_video')[0];
@@ -87,7 +88,7 @@
             cx=halfWidth-margin;
           }
           
-          cy=landmarks[1].y*dstHeight;
+          cy=(landmarks[1].y-0.05)*dstHeight;
           delta=cy-halfHeight;
           
           margin=(dstHeight-canvasElement.height)/2;
@@ -96,13 +97,13 @@
           }
           else if(-delta>margin){
             cy=halfHeight-margin;
-          }
+          }          
         }
       }
     }
     function onSelfieResults(results) {
       //canvasのサイズを設定
-      if(!initialized){
+      if(!initialized || prevWidth!=results.image.width){
         initialized=true;
         //canvasのサイズは入力画像の1.5倍 (お好きなサイズでどうぞ)
         canvasElement.width=results.image.width*1.5;
@@ -119,7 +120,7 @@
       let src = cv.imread(canvasElementCV);
       let dst = new cv.Mat();
         
-      let ksize = new cv.Size(9, 9);
+      let ksize = new cv.Size(11, 11);
       let anchor = new cv.Point(-1, -1);
       // You can try more different parameters
       cv.blur(src, dst, ksize, anchor, cv.BORDER_DEFAULT);
