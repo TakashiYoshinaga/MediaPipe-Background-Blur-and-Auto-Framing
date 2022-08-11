@@ -3,4 +3,5 @@
 [![](https://img.youtube.com/vi/CJA3J1xiQqs/0.jpg)](https://www.youtube.com/watch?v=CJA3J1xiQqs)
 
 <br>
-This is expected to work on pc and smartphone exept for iOS.
+Experience. <br>
+https://takashiyoshinaga.github.io/MediaPipe-Background-Blur-and-Auto-Framing/
