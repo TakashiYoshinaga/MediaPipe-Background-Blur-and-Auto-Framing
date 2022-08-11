@@ -111,7 +111,7 @@
         //入力画像の係数倍のcanvasを用意
         dstWidth=canvasElement.width*scale;
         dstHeight=canvasElement.height*scale;
-        //OpenCV用のキャンバスは入力画像と同じでOK(サイズが大き差に比例して処理が重くなる)
+        //OpenCV用のキャンバスは入力画像と同じでOK(サイズに比例して処理が重くなる)
         canvasElementCV.width=results.image.width;
         canvasElementCV.height=results.image.height;
       }
